@@ -35,7 +35,6 @@ def download_video(url, format_id):
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
             base = os.path.splitext(filename)[0]
-            # If merged to mp4, return that
             if os.path.exists(base + ".mp4"): return base + ".mp4", info.get('title'), None
             return filename, info.get('title'), None
     except Exception as e: return None, None, str(e)
