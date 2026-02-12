@@ -10,9 +10,9 @@ from db_handler import *
 from downloader import get_video_info, download_video
 
 # --- CONFIGURATION ---
-ADMIN_EMAIL = "nazmusshakibshihan01@gmail.com" # <--- REPLACE WITH YOUR REAL EMAIL
+ADMIN_EMAIL = "your-email@gmail.com" # <--- REPLACE THIS
 
-st.set_page_config(page_title="UniSaver Pro", page_icon="⚡", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="UniSaver", page_icon=None, layout="wide", initial_sidebar_state="collapsed")
 
 # --- AUTH SETUP ---
 CLIENT_CONFIG = {
@@ -35,136 +35,149 @@ if 'init_done' not in st.session_state:
     increment_visitor()
     st.session_state['init_done'] = True
 
-# --- GLOBAL STYLES & ANIMATIONS ---
+# --- CLEAN UI CSS (NO EMOJIS) ---
 st.markdown("""
 <style>
-    /* Dark Theme & Glassmorphism */
-    .stApp { background: radial-gradient(circle at top left, #1e293b, #0f172a); color: #f8fafc; font-family: 'Inter', sans-serif; }
+    .stApp { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
     
+    /* Card Style */
     .glass-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
         padding: 24px;
         margin-bottom: 20px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    
-    /* Animations */
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .animate { animation: fadeInUp 0.6s ease-out; }
     
     /* Buttons */
     div.stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        color: white; border: none; border-radius: 12px; height: 50px; font-weight: 600; width: 100%;
-        transition: all 0.3s ease;
+        background: #3b82f6;
+        color: white; border: none; border-radius: 8px; height: 45px; font-weight: 500;
+        transition: background 0.2s;
     }
-    div.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4); }
-    div.stButton > button:active { transform: scale(0.98); }
+    div.stButton > button:hover { background: #2563eb; }
     
     /* Inputs */
     .stTextInput input, .stTextArea textarea {
-        background: #0f172a !important; color: white !important; border: 1px solid #334155 !important; border-radius: 12px;
+        background: #0f172a !important; color: white !important; border: 1px solid #334155 !important;
     }
     
-    /* Cookie Popup */
-    .cookie-box {
-        position: fixed; bottom: 20px; right: 20px;
-        background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 15px; border: 1px solid #3b82f6;
-        z-index: 9999; max-width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    /* Footer Buttons */
+    .footer-btn { background: transparent; color: #94a3b8; border: none; font-size: 12px; cursor: pointer; }
+    .footer-btn:hover { color: #3b82f6; text-decoration: underline; }
+    
+    /* Cookie Box */
+    .cookie-container {
+        position: fixed; bottom: 0; left: 0; width: 100%;
+        background: #1e293b; border-top: 1px solid #3b82f6;
+        padding: 15px; text-align: center; z-index: 9999;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION STATES ---
+# --- SESSION ---
 if 'cookies_accepted' not in st.session_state: st.session_state['cookies_accepted'] = False
 if 'user' not in st.session_state: st.session_state['user'] = None
-if 'remember_me' not in st.session_state: st.session_state['remember_me'] = False
 
-# --- AUTH LOGIC ---
-def login():
+# --- AUTH LOGIC (FIXED) ---
+def login_flow():
+    # If already logged in, do nothing
+    if st.session_state['user']: return
+
+    # Check for code in URL
     code = st.query_params.get("code")
     if code:
         try:
             flow = Flow.from_client_config(CLIENT_CONFIG, scopes=SCOPES, redirect_uri=CLIENT_CONFIG['web']['redirect_uris'][0])
             flow.fetch_token(code=code)
             u = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', params={'access_token': flow.credentials.token}, headers={'Authorization': f'Bearer {flow.credentials.token}'}).json()
+            
+            # Set Session
             st.session_state['user'] = {"email": u.get('email'), "name": u.get('name'), "photo": u.get('picture')}
             add_user(u.get('email'), u.get('name'), u.get('picture'))
+            
+            # Clean URL and Refresh
             st.query_params.clear()
             st.rerun()
-        except: st.error("Login Error")
+        except:
+            st.error("Authentication Error. Please try again.")
 
-def logout(): st.session_state['user'] = None; st.rerun()
-login()
+def logout(): 
+    st.session_state['user'] = None
+    st.rerun()
+
+login_flow()
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2965/2965363.png", width=60)
-    st.title("UniSaver")
+    st.markdown("### UniSaver")
     
     msg, maintenance = get_config()
-    if msg: st.info(f"📢 {msg}")
+    if msg: st.info(msg)
     
     if st.session_state['user']:
         u = st.session_state['user']
-        c1, c2 = st.columns([1, 3])
-        with c1: st.image(u['photo'], width=50)
-        with c2: st.write(f"**{u['name']}**")
+        st.image(u['photo'], width=50)
+        st.write(f"**{u['name']}**")
         
-        if st.button("Logout"): logout()
-        st.divider()
-        st.write(f"Downloads: **{get_user_stats(u['email'])}**")
-        if st.button("🗑️ Clear History"): 
-            clear_user_history(u['email'])
-            st.toast("History Cleared!")
+        # Profile Section
+        with st.expander("My Profile"):
+            joined, banned = get_user_details(u['email'])
+            st.write(f"Joined: {joined}")
+            st.write(f"Status: {'Active' if banned==0 else 'Restricted'}")
+            
+            new_name = st.text_input("Edit Name", value=u['name'])
+            if st.button("Update Name"):
+                update_user_name(u['email'], new_name)
+                st.session_state['user']['name'] = new_name
+                st.success("Name Updated")
+                st.rerun()
+
+            st.write(f"Downloads: {get_user_stats(u['email'])}")
+            if st.button("Clear History"): 
+                clear_user_history(u['email'])
+                st.success("History Wiped")
+
+        if st.button("Sign Out"): logout()
     else:
-        st.warning("Guest Mode")
-        st.session_state['remember_me'] = st.toggle("Remember Me (30 Days)")
+        st.write("Guest Access")
         flow = Flow.from_client_config(CLIENT_CONFIG, scopes=SCOPES, redirect_uri=CLIENT_CONFIG['web']['redirect_uris'][0])
         auth_url, _ = flow.authorization_url(prompt='consent')
-        st.link_button("🔵 Google Login", auth_url, use_container_width=True)
+        st.link_button("Login with Google", auth_url, use_container_width=True)
 
-# --- MAINTENANCE & BAN CHECK ---
+# --- MAINTENANCE MODE ---
 if maintenance == 1 and (not st.session_state['user'] or st.session_state['user']['email'] != ADMIN_EMAIL):
-    st.markdown("<div class='glass-card' style='text-align:center;'><h2>🚧 Maintenance Mode</h2><p>Server upgrade in progress.</p></div>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1,2,1])
+    with c2:
+        st.markdown("<div class='glass-card' style='text-align:center'>", unsafe_allow_html=True)
+        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cW55cnZ6cW55ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/LdObojZLi8XWe493lq/giphy.gif", width=200)
+        st.markdown("### Under Maintenance")
+        st.write("We are upgrading our servers. Please check back later.")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 if st.session_state['user'] and check_ban(st.session_state['user']['email']):
-    st.error("🚫 Your account is suspended.")
+    st.error("Account Suspended")
     st.stop()
 
-# --- COOKIE POPUP ---
-if not st.session_state['cookies_accepted']:
-    st.markdown("""
-    <div class="cookie-box">
-        <strong style="color:white;">🍪 We use cookies</strong><br>
-        <span style="color:#94a3b8; font-size:0.9em;">To ensure you get the best experience.</span><br><br>
-        <button onclick="document.querySelector('.cookie-box').style.display='none'" style="background:#3b82f6; color:white; border:none; padding:5px 15px; border-radius:5px; width:100%;">Accept</button>
-    </div>
-    """, unsafe_allow_html=True)
-
 # --- MAIN UI ---
-tabs = ["⬇️ Download", "📦 Batch"]
+tabs = ["Download", "Batch Mode"]
 if st.session_state['user'] and st.session_state['user']['email'] == ADMIN_EMAIL:
-    tabs.append("🛡️ Admin Console")
+    tabs.append("Admin Console")
 
 active = st.tabs(tabs)
 
-# --- TAB 1: SINGLE DOWNLOAD ---
+# --- TAB 1: DOWNLOAD ---
 with active[0]:
-    st.markdown("<div class='animate'>", unsafe_allow_html=True)
-    st.markdown("<div class='glass-card'><h3>🚀 Universal Downloader</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div class='glass-card'><h3>Video Downloader</h3></div>", unsafe_allow_html=True)
     
-    url = st.text_input("Paste Video Link", placeholder="YouTube, TikTok, Instagram...")
+    url = st.text_input("Paste Link Here", placeholder="https://...")
     
     if url:
-        if not st.session_state['user']: st.info("🔒 Login required for high-speed downloads.")
+        if not st.session_state['user']: st.info("Login required for high-speed downloads.")
         else:
-            with st.spinner("Processing..."):
+            with st.spinner("Analyzing..."):
                 info = get_video_info(url)
             
             if info:
@@ -173,37 +186,34 @@ with active[0]:
                     if info.get('thumbnail'): st.image(info.get('thumbnail'), use_container_width=True)
                 with c2:
                     st.write(f"**{info.get('title')}**")
-                    st.caption(f"Source: {info.get('extractor_key')}")
                     
                     opts = {}
                     for f in info.get('formats', []):
                         if f.get('height'): opts[f"{f['height']}p ({f['ext']})"] = f['format_id']
                     
                     sorted_opts = sorted(opts.keys(), key=lambda x: int(x.split('p')[0]) if x[0].isdigit() else 0, reverse=True)
-                    opts["🎵 Audio Only (MP3)"] = "bestaudio/best"
-                    choice = st.selectbox("Select Quality", ["🎵 Audio Only (MP3)"] + sorted_opts)
+                    opts["Audio Only (MP3)"] = "bestaudio/best"
+                    choice = st.selectbox("Format", ["Audio Only (MP3)"] + sorted_opts)
                     
-                    if st.button("🔥 Download Now"):
-                        with st.status("🚀 Initializing Download...", expanded=True) as status:
+                    if st.button("Download"):
+                        with st.status("Processing...", expanded=True) as status:
                             path, title, err = download_video(url, opts.get(choice))
                             if path and os.path.exists(path):
-                                status.update(label="✅ Success!", state="complete")
+                                status.update(label="Complete", state="complete")
                                 log_download(st.session_state['user']['email'], title, url, choice)
-                                st.balloons()
                                 mime = "audio/mpeg" if "Audio" in choice else "video/mp4"
                                 with open(path, "rb") as f:
-                                    st.download_button("💾 Save File", f, file_name=os.path.basename(path), mime=mime, use_container_width=True)
+                                    st.download_button("Save File", f, file_name=os.path.basename(path), mime=mime, use_container_width=True)
                             else:
-                                status.update(label="❌ Failed", state="error")
+                                status.update(label="Failed", state="error")
                                 st.error(err)
             else: st.error("Invalid Link")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- TAB 2: BATCH DOWNLOAD ---
+# --- TAB 2: BATCH ---
 with active[1]:
-    st.markdown("<div class='glass-card'><h3>📦 Batch Mode</h3><p>Download multiple videos at once.</p></div>", unsafe_allow_html=True)
-    batch = st.text_area("Paste links (one per line)", height=150)
-    if st.button("Start Batch"):
+    st.markdown("<div class='glass-card'><h3>Batch Downloader</h3><p>One link per line</p></div>", unsafe_allow_html=True)
+    batch = st.text_area("Links", height=150)
+    if st.button("Process Batch"):
         if not st.session_state['user']: st.error("Login Required")
         else:
             links = batch.split('\n')
@@ -214,63 +224,83 @@ with active[1]:
                         p, t, e = download_video(l, "best")
                         if p:
                             with open(p, "rb") as f:
-                                st.download_button(f"💾 {t[:15]}...", f, file_name=os.path.basename(p), key=l)
+                                st.download_button(f"Save {t[:10]}...", f, file_name=os.path.basename(p), key=l)
 
-# --- TAB 3: ADMIN (HIDDEN) ---
+# --- TAB 3: ADMIN ---
 if len(tabs) > 2:
     with active[2]:
-        st.markdown("## 🛡️ Admin Dashboard")
+        st.markdown("### Admin Dashboard")
         
-        # Diagnostics
-        st.markdown("### 🖥️ System Health")
+        # Stats
         c1, c2, c3 = st.columns(3)
         c1.metric("CPU", f"{psutil.cpu_percent()}%")
         c2.metric("RAM", f"{psutil.virtual_memory().percent}%")
         c3.metric("Disk", f"{psutil.disk_usage('/').percent}%")
         
-        # Analytics Chart
+        # Chart
         st.divider()
-        st.markdown("### 📈 Download Trends (7 Days)")
         daily = get_daily_downloads()
         if not daily.empty:
-            fig = px.bar(daily, x='timestamp', y='count', color_discrete_sequence=['#8b5cf6'])
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
+            fig = px.bar(daily, x='timestamp', y='count')
             st.plotly_chart(fig, use_container_width=True)
-        else: st.info("No data yet.")
 
-        # Tools
+        # Config
         st.divider()
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown("### 🍪 Fix 403 Errors")
+            st.markdown("#### Cookies")
             up = st.file_uploader("Upload cookies.txt", type=['txt'])
             if up:
                 with open("cookies.txt", "wb") as f: f.write(up.getbuffer())
-                st.success("Global Cookies Updated!")
+                st.success("Updated")
         with c2:
-            st.markdown("### 📢 Server Config")
-            new_msg = st.text_input("Broadcast Message", value=msg)
+            st.markdown("#### Config")
+            new_msg = st.text_input("Broadcast", value=msg)
             m_mode = st.toggle("Maintenance Mode", value=(maintenance==1))
-            if st.button("Save Config"):
+            if st.button("Save"):
                 set_config(new_msg, 1 if m_mode else 0)
-                st.success("Saved!")
+                st.success("Saved")
 
-        # File Manager
+        # Files
         st.divider()
-        st.markdown("### 📂 File Manager")
         if os.path.exists("downloads"):
             for f in os.listdir("downloads"):
                 c1, c2 = st.columns([3, 1])
-                c1.write(f"📄 {f}")
+                c1.write(f)
                 if c2.button("Delete", key=f):
                     os.remove(f"downloads/{f}")
                     st.rerun()
 
+# --- COOKIE CONSENT (NATIVE) ---
+if not st.session_state['cookies_accepted']:
+    with st.container():
+        st.info("🍪 We use cookies to ensure you get the best experience.")
+        if st.button("Accept Cookies"):
+            st.session_state['cookies_accepted'] = True
+            st.rerun()
+
 # --- FOOTER ---
-st.markdown("""
-<br><hr style="border-color:rgba(255,255,255,0.1);">
-<div style="text-align:center; color:#94a3b8; font-size:0.8em;">
-    © 2024 UniSaver Ultimate. All rights reserved.<br>
-    <a href="#" style="color:#64748b;">Terms</a> | <a href="#" style="color:#64748b;">Privacy</a> | <a href="#" style="color:#64748b;">DMCA</a>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<br><hr>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns(3)
+
+# Modal Functions for Footer
+@st.experimental_dialog("Terms of Service")
+def show_terms():
+    st.write("1. Usage Policy: Personal use only.\n2. Copyright: Do not distribute content.\n3. Liability: We are not responsible for downloads.")
+
+@st.experimental_dialog("Privacy Policy")
+def show_privacy():
+    st.write("We do not store personal data other than your email for login authentication. Cookies are used for session management.")
+
+@st.experimental_dialog("DMCA")
+def show_dmca():
+    st.write("If you believe content infringes your copyright, please contact the admin email to block the URL.")
+
+with col1:
+    if st.button("Terms", use_container_width=True): show_terms()
+with col2:
+    if st.button("Privacy", use_container_width=True): show_privacy()
+with col3:
+    if st.button("DMCA", use_container_width=True): show_dmca()
+
+st.markdown("<div style='text-align:center; color:grey; margin-top:10px;'>© 2026 UniSaver. All rights reserved.</div>", unsafe_allow_html=True)
