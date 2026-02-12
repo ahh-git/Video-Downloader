@@ -10,7 +10,7 @@ from db_handler import *
 from downloader import get_video_info, download_video
 
 # --- CONFIGURATION ---
-ADMIN_EMAIL = "your-email@gmail.com" # <--- REPLACE THIS
+ADMIN_EMAIL = "your-email@gmail.com" # <--- REPLACE WITH YOUR REAL EMAIL
 
 st.set_page_config(page_title="UniSaver", page_icon=None, layout="wide", initial_sidebar_state="collapsed")
 
@@ -35,7 +35,7 @@ if 'init_done' not in st.session_state:
     increment_visitor()
     st.session_state['init_done'] = True
 
-# --- CLEAN UI CSS (NO EMOJIS) ---
+# --- CLEAN UI CSS (PROFESSIONAL MODE) ---
 st.markdown("""
 <style>
     .stApp { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
@@ -63,16 +63,10 @@ st.markdown("""
         background: #0f172a !important; color: white !important; border: 1px solid #334155 !important;
     }
     
-    /* Footer Buttons */
-    .footer-btn { background: transparent; color: #94a3b8; border: none; font-size: 12px; cursor: pointer; }
-    .footer-btn:hover { color: #3b82f6; text-decoration: underline; }
-    
-    /* Cookie Box */
-    .cookie-container {
-        position: fixed; bottom: 0; left: 0; width: 100%;
-        background: #1e293b; border-top: 1px solid #3b82f6;
-        padding: 15px; text-align: center; z-index: 9999;
-    }
+    /* Footer */
+    .footer-container { text-align: center; border-top: 1px solid #334155; padding-top: 20px; margin-top: 40px; }
+    .footer-link { color: #94a3b8; text-decoration: none; margin: 0 10px; font-size: 14px; cursor: pointer; }
+    .footer-link:hover { color: #3b82f6; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,10 +76,13 @@ if 'user' not in st.session_state: st.session_state['user'] = None
 
 # --- AUTH LOGIC (FIXED) ---
 def login_flow():
-    # If already logged in, do nothing
-    if st.session_state['user']: return
+    # 1. If already logged in, check if we need to clean URL
+    if st.session_state['user']:
+        if st.query_params.get("code"):
+            st.query_params.clear()
+        return
 
-    # Check for code in URL
+    # 2. Process Login Code
     code = st.query_params.get("code")
     if code:
         try:
@@ -101,7 +98,7 @@ def login_flow():
             st.query_params.clear()
             st.rerun()
         except:
-            st.error("Authentication Error. Please try again.")
+            st.error("Authentication Error")
 
 def logout(): 
     st.session_state['user'] = None
@@ -151,7 +148,8 @@ if maintenance == 1 and (not st.session_state['user'] or st.session_state['user'
     c1, c2, c3 = st.columns([1,2,1])
     with c2:
         st.markdown("<div class='glass-card' style='text-align:center'>", unsafe_allow_html=True)
-        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cW55cnZ6cW55ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/LdObojZLi8XWe493lq/giphy.gif", width=200)
+        # CARTOON MAINTENANCE GIF
+        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cW55cnZ6cW55ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/LdObojZLi8XWe493lq/giphy.gif", width=300)
         st.markdown("### Under Maintenance")
         st.write("We are upgrading our servers. Please check back later.")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -271,28 +269,30 @@ if len(tabs) > 2:
                     os.remove(f"downloads/{f}")
                     st.rerun()
 
-# --- COOKIE CONSENT (NATIVE) ---
+# --- COOKIE CONSENT (FIXED) ---
 if not st.session_state['cookies_accepted']:
     with st.container():
-        st.info("🍪 We use cookies to ensure you get the best experience.")
+        st.info("We use cookies to ensure you get the best experience.")
         if st.button("Accept Cookies"):
             st.session_state['cookies_accepted'] = True
             st.rerun()
 
-# --- FOOTER ---
+# --- FOOTER (FIXED) ---
 st.markdown("<br><hr>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
-# Modal Functions for Footer
-@st.experimental_dialog("Terms of Service")
+# UPDATED: Using st.dialog (Requires streamlit >= 1.35.0)
+@st.dialog("Terms of Service")
 def show_terms():
-    st.write("1. Usage Policy: Personal use only.\n2. Copyright: Do not distribute content.\n3. Liability: We are not responsible for downloads.")
+    st.write("1. Usage Policy: Personal use only.")
+    st.write("2. Copyright: Do not distribute content.")
+    st.write("3. Liability: We are not responsible for downloads.")
 
-@st.experimental_dialog("Privacy Policy")
+@st.dialog("Privacy Policy")
 def show_privacy():
     st.write("We do not store personal data other than your email for login authentication. Cookies are used for session management.")
 
-@st.experimental_dialog("DMCA")
+@st.dialog("DMCA")
 def show_dmca():
     st.write("If you believe content infringes your copyright, please contact the admin email to block the URL.")
 
