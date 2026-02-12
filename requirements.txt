@@ -1,0 +1,9 @@
+streamlit
+yt-dlp[default]>=2023.10.13
+pandas
+google-auth
+google-auth-oauthlib
+requests
+psutil
+watchdog
+plotly
