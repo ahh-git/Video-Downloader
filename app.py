@@ -10,7 +10,7 @@ from db_handler import *
 from downloader import get_video_info, download_video
 
 # --- CONFIGURATION ---
-ADMIN_EMAIL = "your-email@gmail.com" # <--- REPLACE WITH YOUR REAL EMAIL
+ADMIN_EMAIL = "nazmusshakibshihan01@gmail.com" # <--- REPLACE WITH YOUR REAL EMAIL
 
 st.set_page_config(page_title="UniSaver Pro", page_icon="⚡", layout="wide", initial_sidebar_state="collapsed")
 
